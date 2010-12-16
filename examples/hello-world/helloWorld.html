@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <script type="text/javascript" src="./../../lib/revhttpws-client.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+  </head>
+  <body>
+    <div id="message">
+    Welcome to the RevHttpWs Hello World demo!
+    <br></br>
+    The response from a server running in this Web page will show up below. See the console output for debug information. 
+    <br></br>
+    </div>
+    <div id="serverResponses">
+    </div>
+    <br></br>
+    <div id="requests">
+    </div>
+    
+    <script type="text/javascript">
+      
+      var serverDomain = "localhost";
+      var serverPort = "9897";      
+      
+      var helloWorldDomain = "helloworld" + Math.floor(Math.random()*1000000000000000);
+      $('#serverResponses').append("You can also access the server at (copy/paste into new browser window): " + "http://" + helloWorldDomain + ".rp." + serverDomain + ":" + serverPort + "<br></br>");
+      
+      // client
+      
+      // send request to a server running in the browser
+      function sendClientRequest() {
+        $.ajax({
+          url : "http://" + helloWorldDomain + ".rp." + serverDomain + ":" + serverPort,
+          success : function(data) {  
+            $('#serverResponses').append(data); 
+          }
+        });
+      }
+      
+      // wait 4 seconds before sending the request, that should be enough time
+      // to set everything up
+      setTimeout(sendClientRequest, 4000);
+    
+      // server
+      
+      var client = new RevHttpWsClient({debug : true});
+      
+      // connect to revhttpws server 
+      client.connect("ws://cp." + serverDomain + ":" + serverPort, function(connectErr, connectRes) { 
+        
+        // register the helloworld domain
+        client.registerDomain({ domain : helloWorldDomain, token : "helloToken" }, function(registerErr, registerRes) {          
+          
+          // create a handler that will handler http requests
+          // the handler does three things
+          //   1) enables cross-origin resource sharing for browser requests
+          //   2) returns a HELLO WORLD HTML snippet
+          //   3) adds a line of text to the page in order to log the request
+          var helloHandler = function(request, response) {
+            if (request.method === "GET") {
+              response.bodyText = "<b> HELLO WORLD! </b><br></br>";
+              response.headers = {"Content-Type" : "text/html", "Access-Control-Allow-Origin" : "*"};
+              response.status = 200;
+              response.send();
+              
+              $('#requests').append((new Date()).toString() + " - " + request.method + " " + request.url + "<br></br>"); 
+            }
+          };
+          
+          // parameters for attaching a handler for a specific domain and scheme
+          var handlerParams = { 
+            domain : helloWorldDomain, 
+            scheme : "http", 
+            token : registerRes.token, 
+            handler : helloHandler
+          };
+          
+          // attach the created handler for the http scheme of the registered domain
+          // assume everything will go ok
+          client.attachHandler( handlerParams, function(attachErr, attachRes) { } );
+        });
+      });
+    </script>
+  </body>
+</html>
