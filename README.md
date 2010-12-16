@@ -54,9 +54,12 @@ Running the HelloWorld example
 ------------------------------
 
 There are three steps in running an example:
+
 1. running or using an existing revhttpws proxy-server
 2. running the application exposing services using the proxy (e.g. starting a Web page in a browser that connects to the proxy-server, registers an URI and starts serving requests forwarded to it by the proxy-server)
 3. running a client requesting exposed services (e.g. curl-ing the URI registered by the Web page in step 2.)
+
+Or skip setting up everything yourself and see a working example at: [http://jsbin.com/opadu4](http://jsbin.com/opadu4)
 
 ### Running or using an existing revhttpws proxy-server
 
