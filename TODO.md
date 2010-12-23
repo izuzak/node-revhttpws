@@ -17,7 +17,6 @@ Currently there is only a single sanity-check test. Furthermore, there should be
 Currently there is only a single Hello World example for showing of RevHTTPWS. I have several other in the works:
 * Path-based dispatcher + CORS handler example
 * Cross-browser RPC example 
-* PubSubHubBub + WebNotifications example 
 * HTML5 Peer-to-peer connections example
 
 ## Better logging

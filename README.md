@@ -59,11 +59,11 @@ There are three steps in running an example:
 2. running the application exposing services using the proxy (e.g. starting a Web page in a browser that connects to the proxy-server, registers an URI and starts serving requests forwarded to it by the proxy-server)
 3. running a client requesting exposed services (e.g. curl-ing the URI registered by the Web page in step 2.)
 
-Or skip setting up everything yourself and see a working example at: [http://jsbin.com/opadu4](http://jsbin.com/opadu4)
+Or skip setting up everything yourself and see a working example at: [http://jsbin.com/opadu4/2](http://jsbin.com/opadu4/2)
 
 ### Running or using an existing revhttpws proxy-server
 
-You can either start your own server or use my testing server at ws://revhttpws.ivanzuzak.info:9897. WARNING: this server is for testing purposes ONLY. It may be shut down, erased or redirected at any time, without notice. If you want to use the testing server, you can skip the rest of this step and continue from "Running the application exposing services using the proxy".
+You can either start your own server or use my testing server at ws://revhttpws.ivanzuzak.info:8080. WARNING: this server is for testing purposes ONLY. It may be shut down, erased or redirected at any time, without notice. If you want to use the testing server, you can skip the rest of this step and continue from "Running the application exposing services using the proxy".
 
 To start your own server, you will need to have a registered domain name with a wildcard A record pointing to the IP address on which the server will run. E.g. let's say you own the domain "smartdomainname.com" and that the server will run on 166.166.166.166 port 9090 - you will need to add "*.revhttpws.smartdomainname.com A 166.166.166.166"
 

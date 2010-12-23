@@ -7,7 +7,7 @@ var server = revhttpws.createServer({
   "clientPrefix" : "cp",
   "requestPrefix" : "rp"
 }, function () {
-  server.listen(9897, '127.0.0.1');
+  server.listen(8080, '127.0.0.1');
 });
 
 function closeServer() {

@@ -1,6 +1,6 @@
 {
     "name": "revhttpws",
-    "version": "0.0.01",
+    "version": "0.0.02",
     "description": "revhttpws is a programmable HTTP and WS tunnel - it exposes a remote HTTP or WS application by giving it an URI and tunneling all requests for that URI to the application using WebSockets. In essence, it gives you a HTTP and WebSockets server inside a Web browser using a revhttpws proxy. Inspired by the ReverseHTTP specification: http://reversehttp.net/reverse-http-spec.html",
     "homepage": "http://github.com/izuzak/node-revhttpws",
     "tags": ["revhttp", "http", "websockets"],

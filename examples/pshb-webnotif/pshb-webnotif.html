@@ -1,0 +1,220 @@
+<html>
+  <head>
+    <script type="text/javascript" src="./../../lib/revhttpws-client.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+  </head>
+  <body>
+    Welcome to the RevHttpWs PubSubHubbub + WebNotifications demo!
+    <br></br>
+    Feed notifications from a server running in this web page will show up as WebNotifications. See the console output for debug information. 
+    <br></br>
+    
+    <a href="javascript:void(requestWebNotificationPermission());">To start the demo and make notifications work you must click this link and allow access</a>
+    
+    <br></br>
+    
+    After allowing access, click the button below to create new ATOM feed entries, publish them using PSHB, receive them from PSHB, and display here again in a WebNotification.
+    
+    <FORM> 
+      <INPUT type="button" value="Add and publish new entry" name="button1" onClick="addNewEntry()"/> 
+    </FORM>
+    <br></br>
+    <div id="notifications">
+    <b>In case WebNotifications are not enabled or not supported, PSHB notifications will show up here:</b>
+    <br></br>
+    </div>
+    <br></br>
+    <div id="requests">
+    <b>Received HTTP requests:</b>
+    <br></br>
+    </div>
+
+    <script type="text/javascript">        
+      // revhttpws server parameters
+      // the port must be one of the ports which the appengine pshb hub supports, 8080 is one of them
+      var serverDomain = "revhttpws.ivanzuzak.info";
+      var serverPort = "8080";
+      
+      // generate random uris for publisher and subscriber
+      var publisherDomain = "publisher" + Math.floor(Math.random()*1000000000000000);
+      var publisherTopicUrl = "http://" + publisherDomain + ".rp." + serverDomain + ":" + serverPort + "/";
+      
+      var subscriberDomain = "subsriber" + Math.floor(Math.random()*1000000000000000);
+      var subscriberUrl = "http://" + subscriberDomain + ".rp." + serverDomain + ":" + serverPort + "/";
+      
+      // use the free and public pshb hub on appengine
+      var hubUrl = "http://pubsubhubbub.appspot.com/";
+      
+      // request permission for showing notifications
+      function requestWebNotificationPermission() {
+        window.webkitNotifications.requestPermission();
+      }
+      
+      // create and display notifications for feed updates
+      function createWebNotification(title, text) {
+        if (window.webkitNotifications.checkPermission() === 0) {
+          window.webkitNotifications.createNotification("http://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Feed-icon.svg/128px-Feed-icon.svg.png", title, text).show();
+        } else {
+          $('#notifications').append("Title: " + title + ". Content: " + text + "<br></br>");
+        }
+      }
+      
+      // connect to revhttpws proxy server
+      var client = new RevHttpWsClient({debug : true});
+      client.connect("ws://cp." + serverDomain + ":" + serverPort, function(connectErr, connectRes) { 
+  
+        // publisher
+        
+        // generate an xml schema format date-time string from a js date object
+        function jsDateTimeToAtomDateTime(date) {
+          var year = date.getFullYear().toString();
+          var month = date.getMonth().toString(); month = month.length === 2 ? month : "0" + month;
+          var day = date.getDay().toString(); day = day.length === 2 ? day : "0" + day;
+          var hours = date.getHours().toString(); hours = hours.length === 2 ? hours : "0" + hours;
+          var minutes = date.getMinutes().toString(); minutes = minutes.length === 2 ? minutes : "0" + minutes;
+          var seconds = date.getSeconds().toString(); seconds = seconds.length === 2 ? seconds : "0" + seconds;
+          
+          return year + "-" +  month + "-" + day + "T" + hours + ":" + minutes + ":" + seconds + "Z";
+        }
+        
+        // object that holds feed entries and generates an atom XML feed string
+        var feedEntries = {
+          entries : [],
+          feedUrl : publisherTopicUrl,
+          hubUrl : hubUrl,
+          addEntry : function(text) { var newDate = jsDateTimeToAtomDateTime(new Date()); this.entries.push([text, newDate]); this.updated = newDate; },
+          getFeedAsXml : function() {
+            var feedXmlString = "";
+            
+            feedXmlString += '<?xml version="1.0"?>';
+            feedXmlString += '<atom:feed xmlns:atom="http://www.w3.org/2005/Atom">';
+            feedXmlString += '<atom:link rel="hub" href="' + this.hubUrl + '" />';
+            feedXmlString += '<atom:link rel="self" href="' + this.feedUrl +'" />';
+            feedXmlString += '<atom:updated>' + this.updated +'</atom:updated>';
+            feedXmlString += '<atom:title>Demo feed for RevHttpWs.</atom:title>'; 
+            feedXmlString += '<atom:id>' + this.feedUrl + '</atom:id>';
+            feedXmlString += '<atom:author><atom:name>John Doe</atom:name></atom:author>';
+
+            for (var i=0; i<this.entries.length; i++) {
+              feedXmlString += '<atom:entry>';
+              feedXmlString += '<atom:title>Entry Number ' + i.toString() + '</atom:title>';
+              feedXmlString += '<atom:link href="' + this.feedUrl + i.toString() + '.xml" />';
+              feedXmlString += '<atom:id>' + this.feedUrl + i.toString() + '.xml</atom:id>';
+              feedXmlString += '<atom:updated>' + this.entries[i][1] + '</atom:updated>';
+              feedXmlString += '<atom:content>' + this.entries[i][0] + '</atom:content>';
+              feedXmlString += '</atom:entry>';
+            }
+            
+            feedXmlString += '</atom:feed>';
+            
+            return feedXmlString;
+          }
+        };
+        
+        // generate and add a new feed entry and notify the hub using the urlreq proxy service
+        function createAndPublishNewFeedEntry() {
+          console.log("Creating and publishing feed notification");
+          feedEntries.addEntry("Hello! This is entry number " + feedEntries.entries.length.toString()); 
+          var gaePshbProxyUrl = "http://urlreq.appspot.com/pshbping?hub=" + encodeURIComponent(hubUrl) + "&topic=" + encodeURIComponent(publisherTopicUrl);
+          $.ajax({
+            url : gaePshbProxyUrl,
+            success : function(data) {  
+              console.log("Received response to feed notification publishing: " + data);
+            }
+          });
+        }
+        
+        // make the function global so that it can be called as a click handler
+        window.addNewEntry = createAndPublishNewFeedEntry;
+        
+        // register the publisher domain
+        client.registerDomain({ domain : publisherDomain, token : "publisherDomain" }, function(registerErr, registerRes) {
+        
+          // publisher HTTP handler which retrieves the ATOM feed string and returns it as the response
+          var publisherHandler = function(request, response) {
+            $('#requests').append("PUBLISHER - " + (new Date()).toString() + " - " + request.method + " " + request.url + "<br></br>"); 
+            if (request.method === "GET") {
+              response.bodyText = feedEntries.getFeedAsXml();
+              response.headers = {"Content-Type" : "application/atom+xml", "Access-Control-Allow-Origin" : "*"};
+              response.status = 200;
+              response.send();
+            }
+          };
+          
+          var handlerParams = { 
+            domain : publisherDomain, 
+            scheme : "http", 
+            token : registerRes.token, 
+            handler : publisherHandler
+          };
+          
+          // attach handler and expect everything will go OK
+          client.attachHandler( handlerParams, function(attachErr, attachRes) { } );
+        });
+        
+        // subscriber
+        
+        // retrieves the title and content of a new feed entry deliverd through pshb and displays it to the user
+        function presentNotification(atomXML) {
+          console.log("Received ATOM XML feed: " + atomXML);
+          var title = atomXML.substring(atomXML.indexOf("<atom:entry><atom:title>") + "<atom:entry><atom:title>".length, atomXML.indexOf("</atom:title><atom:link"));
+          
+          var content = atomXML.substring(atomXML.indexOf("</atom:updated><atom:content>") + "</atom:updated><atom:content>".length, atomXML.indexOf("</atom:content></atom:entry>"));
+          
+          createWebNotification(title, content);
+        }
+        
+        // register the subscriber domain
+        client.registerDomain({ domain : subscriberDomain, token : "subscriberDomain" }, function(registerErr, registerRes) {
+        
+          // the subscriber handler
+          // in case of a GET request (subscription verification) - the handler echoes the secret received as a query parameter back in the response body
+          // in case of a POST request (new feed entry notification - the handler just responds with 200 OK and displays the received entry
+          var subscriberHandler = function(request, response) {
+            if (request.method === "GET") {            
+              response.bodyText = request.url.substring(request.url.indexOf("=")+1, request.url.indexOf("&"));
+              response.headers = {"Content-Type" : "application/x-www-form-urlencoded", "Access-Control-Allow-Origin" : "*"};
+              response.status = 200;
+              response.send();
+              
+              $('#requests').append("SUBSCRIBER (VERIFY) - " + (new Date()).toString() + " - " + request.method + " " + request.url + "<br></br>"); 
+            } else if (request.method === "POST") {
+              presentNotification(request.bodyText);
+              
+              response.headers = {"Content-Type" : "text/html", "Access-Control-Allow-Origin" : "*"};
+              response.status = 200;
+              response.send();
+              
+              $('#requests').append("SUBSCRIBER (NOTIFICATION) - " + (new Date()).toString() + " - " + request.method + " " + request.url + "<br></br>");
+            }
+          };
+        
+          var handlerParams = { 
+            domain : subscriberDomain, 
+            scheme : "http", 
+            token : registerRes.token, 
+            handler : subscriberHandler
+          };
+          
+          // attach subscriber handler and assume everything will go OK
+          client.attachHandler( handlerParams, function(attachErr, attachRes) { } );
+        });
+        
+        // sends a feed subscription request using the urlreq appengine service, passing the subscriber URI as the callback and the publisher URI as the topic
+        function subscribeToFeed() {
+          console.log("Subscribing to feed");
+          var gaePshbProxyUrl = "http://urlreq.appspot.com/pshbsub?hub=" + encodeURIComponent(hubUrl) + "&topic=" + encodeURIComponent(publisherTopicUrl) + "&callback=" + encodeURIComponent(subscriberUrl) + "&mode=subscribe" + "&verify=sync";
+          $.ajax({
+            url : gaePshbProxyUrl,
+            success : function(data) {  
+              console.log("Received response to feed subscription: " + data);
+            }
+          });
+        }
+        
+        // kicks-off the subscription after 2 seconds (that should be enough time for everything to set up)
+        setTimeout( subscribeToFeed, 2000 );        
+      });
+    </script>
+  </body>
+</html>
