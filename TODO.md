@@ -54,3 +54,5 @@ isValid... methods expect that a port number is present in the host header, when
 ## Calling user callbacks should be the last thing to do in a function or should be done asynchronously.
 
 ## In the client library, methods for creating messages should include a msgId.
+
+## HEAD request with no host header kills the server.

@@ -10,7 +10,7 @@ RevHTTPWS is implemented in [NodeJS](http://www.nodejs.org).
 Motivation
 ----------
 
-TODO.
+A peer-to-peer WorldWideWeb (insted of a client-server model) - any entity may obtain an URI and be communicated with using Web protocols (browsers, TV widgets, anything). Browser-to-browser communication. See the [BrowserAccess GitHub project](https://github.com/tomek22/BrowserAccess) - another similar project that aims to unify two approaches for accessing Web applications executing in the browser: browser extensions and a reverseHTTP proxy.
 
 Status
 ------
@@ -48,7 +48,239 @@ Dependencies
 API
 ---
 
-TODO.
+### RevHttpWs proxy-server
+
+The revhttpws-server library exposes a single method for creating a revhttpws server object:
+
+    var server = revhttpws.createServer(options, callback);
+
+where `options` is a map of the following parameters:
+
+* (optional) `debug` - switch for turning console debug messages on (`true`) or off (`false`) (default: `false`)
+* (optional) `database` - name of file which will be used as a database for peristing domain registrations (default: `'revhttpws.db'`)
+* (optional) `domainSufix` - higher-level domain on which the proxy will run and on which subdomains will be handed out (default: `'localhost'`)
+* (optional) `clientPrefix` - the domain prefix for the domainSufix on which applications requesting access to the revhttpws proxy server may connect to. (default: `'cp'`). For example, if the domainSufix is `localhost` and clientPrefix is `clients` and the server is running on port `8080`, then opening a WebSocket connection to `ws://clients.localhost:8080` will establish a connection with the server for the purpose of registering domains and attaching handlers for various schemes on that domain. This is also the URI which should be passed to the revhttpws-client library explained below when calling the `connect` method.
+* (optional) `requestPrefix` - the domain prefix for the domainSufix domain on which HTTP and WS requests for registered domains will be handled. (default: `'rp'`) For example, if the domainSufix is `localhost` and requestPrefix is `requests` and the server is running on port `8080`, then sending a HTTP request to `http://someregistereddomain.requests.localhost:8080/` will result in the request being forwarded to the handler registered for the `someregistereddomain` subdomain and `http` prtocol/scheme.
+
+and `callback` is a parameter-less function that will be called when the server object finishes with loading entries from the database.
+
+The revhttpws server object exposes the following methods:
+
+####    server.listen(port, ipAddress);
+which starts the server by listening for requests on `port` port and IP address `ipAddress`.
+
+####    server.close();
+which gracefully shuts down the server.
+
+Example:
+
+    var revhttpws = require('lib/revhttpws-server.js');
+    
+    var server = revhttpws.createServer({
+      'debug' : true,
+      'database' : 'revhttpws-uris.db',
+      'domainSufix' : 'revhttpws.ivanzuzak.info',
+      'clientPrefix' : 'cp',
+      'requestPrefix' : 'rp'
+    }, function () {
+      server.listen(8080, '161.53.65.205');
+    });
+    
+    function closeServer() {
+      server.close();
+    }
+
+### RevHttpWs JavaScript library for accessing the revhttpws proxy server
+
+The revhttpws-client library exposes an API for connecting to the revhttpws proxy server (using WebSockets) and performing various operations on the server. The revhttpws-client library (revhttpws-client.js) may be used in a browser environment (using the `<script>` tag) or in nodejs applications (using `require`):
+
+    <script type="text/javascript" src="revhttpws-client.js"></script>   
+for use in a browser application and
+    
+    var RevHttpWsClient = require('./../lib/revhttpws-client.js').RevHttpWsClient;
+for use in a nodejs application.
+
+The library functionallity is accessed through the RevHttpWsClient object which must be instantiated:
+
+    var client = new RevHttpWsClient(options);
+    
+where `options` is a map of the following parameters: 
+
+* (optional) `debug` - switch for turning console debug messages on (`true`) or off (`false`) (default: `false`)
+    
+The RevHttpWsClient object exposes the following methods:
+
+####    client.connect(revhttpwsServerUri, function(err, res) { ... });
+
+which connects to the revhttpws proxy server. `revhttpwsServerUri` is an URI string for connecting to the revhttpws proxy server (see `clientPrefix` option in revhttpws-server `createServer` method). `err` is set if an error occured while connecting to the server, `res` is the client object on which the `connect` method was called.
+
+Example:
+
+    client.connect('ws://cp.revhttpws.ivanzuzak.info', function(connectErr, connectRes) { 
+      if (connectErr) {
+        alert("BOINK!");
+      } else {
+        // useful stuff here
+      }
+    });
+ 
+ 
+####    client.disconnect();
+which disconnects from the revhttpws proxy server.
+
+####    client.registerDomain(params, function(err, res) { ... });
+which registers a subdomain on the revhttpws proxy server in order to serve requests on that subdomain for various schemes/protocols. `params` is a map of the following parameters for registering a subdomain:
+
+* (mandatory) `domain` - string defining the subdomain you want to register (e.g. `'helloworld123'`)
+* (optional) `token` - a string defining the security token for the registering domain. This token is used in subsequent operations of the domain, such as attaching a handler. If not specified, a random token is generated.
+
+`err` is set if an error occured while registering a domain. `res` is the response object received from the proxy server, a map containing the following elements:
+
+* `success` - `true` if the register operation succeeded, `false` otherwise.
+* `errorMsg` - a string contaning the error message if success was `false`.
+* `domain` - echo of the subdomain string defined in the registerDomain method `domain` parameter.
+* `realSufix` - the full domain which was registered, consisting of the `domain` parameter prefix and server-specific sufix. For example, if the `helloworld123` subdomain was requested for registration, the full domain reserved by the proxy server could be `helloWorld123.rp.revhttpws.ivanzuzak.info`.
+* `token` - echo of the security token string defined in the registerDomain method `token` parameter.
+
+Example:
+
+    client.registerDomain({ domain : "helloWorldDomain123", token : "helloToken" },
+      function(registerErr, registerRes) { 
+        if (registerErr) {
+          alert("BOINK!");
+        } else {
+          // useful stuff here
+        }
+      }
+    });
+
+
+####    client.unregisterDomain(params, function(err, res) { ... }); 
+which unregisters a subdomain on the revhttpws proxy server. `params` is a map of the following parameters for unregistering a subdomain:
+
+* (mandatory) `domain` - string defining the subdomain to be unregisterer (e.g. `'helloworld123'`).
+* (mandatory) `token` - a string defining the security token for the domain to be unregistered (defined at registration).
+
+`err` is set if an error occured while unregistering a domain.  `res` is the response object received from the proxy server, a map containing the following elements:
+
+* `success` - `true` if the unregister operation succeeded, `false` otherwise.
+* `errorMsg` - a string contaning the error message if success was `false`.
+* `domain` - echo of the subdomain string defined in the unregisterDomain method `domain` parameter.
+
+Example:
+
+    client.unregisterDomain({ domain : "helloWorldDomain123", token : "helloToken" },
+      function(unregisterErr, unregisterRes) { 
+        if (unregisterErr) {
+          alert("BOINK!");
+        } else {
+          // useful stuff here
+        }
+      }
+    });
+
+####    client.attachHandler(params, function(err, res) { ... }); 
+which attaches a handler for a specific protocol on a previously registered subdomain. The currently supported protocols are HTTP and WebSockets. In essence, the attach handler operation yields an URI with either the HTTP and WS schemes and enables applications to server requests sent to that URI. A domain may have a single handler attached per protocol/scheme (ie. 1 for HTTP, 1 for WS). `params` is a map of the following parameters for attaching a handler:
+
+* (mandatory) `domain` - a string defining a previously registered subdomain to which a handler should be attached (e.g. 'helloworld123')
+* (mandatory) `scheme` - a string defining the protocol scheme which the handler will handle (currently only 'http' or 'ws')
+* (mandatory) `token` - a string defining the security token for the domain (defined at registration).
+* (mandatory) `handler` - a function that is the handler for this scheme and domain combination. Depending on the scheme, the handler must have a specific signature and functionallity. See examples below for more info.
+
+`err` is set if an error occured while attaching a handler,  `res` is the response object received from the proxy server, a map containing the following elements:
+
+* `success` - `true` if the attach operation succeeded, `false` otherwise.
+* `errorMsg` - a string contaning the error message if success was `false`.
+* `domain` - echo of the subdomain string defined in the attachHandler method `domain` parameter.
+* `scheme` - echo of the scheme string defined in the attachHandler method `scheme` parameter.
+
+HTTP Example:
+
+    var helloHandler = function(request, response) {
+      if (request.method === "GET" && request.headers['someHeader'] !== "x" && request.bodyText === "") {
+        response.bodyText = "<b> HELLO WORLD! </b><br></br>";
+        response.headers = {"Content-Type" : "text/html", "Access-Control-Allow-Origin" : "*"};
+        response.status = 200;
+        response.send();
+      }
+    };
+    
+    var handlerParams = { 
+      domain : "helloWorldDomain", 
+      scheme : "http", 
+      token : "helloToken", 
+      handler : helloHandler
+    };
+
+    client.attachHandler( handlerParams, function(attachErr, attachRes) { 
+      if (attachErr) {
+        alert("BOINK!");
+      } else {
+        // useful stuff here
+      }
+    } );
+          
+WebSockets Example:
+
+    var wsHandler = function(newWebSocket) {
+      newWebSocket.onmessage = function(msg) {
+        newWebSocket.send("ECHO " + msg.data);   
+        setTimeout( function() { newWebSocket.close(); }, 4000 );
+      };
+      
+      newWebSocket.onerror = function() { console.log("WS ERROR"); };
+      newWebSocket.onclose = function() { console.log("WS CLOSE"); };      
+    };
+    
+    var handlerParams = { 
+      domain : "wsDomain", 
+      scheme : "ws", 
+      token : "wsToken", 
+      handler : wsHandler
+    };
+    
+    client.attachHandler( handlerParams, function(attachErr, attachRes) { 
+      if (attachErr) {
+        alert("BOINK!");
+      } else {
+        // useful stuff here
+      }
+    } );
+
+
+####    client.detachHandler(params, function(err, res) { ... }); 
+- detaches a previously attached handler. `params` is a map of the following parameters for detaching a handler:
+
+* (mandatory) `domain` - a string defining a previously registered subdomain from which a handler should be detached (e.g. 'helloworld123')
+* (mandatory) `scheme` - a string defining the protocol scheme from which the handler should be detached (currently only 'http' or 'ws')
+* (mandatory) `token` - a string defining the security token for the domain (defined at registration).
+
+- `err` is set if an error occured while detaching a handler, `res` is the client object on which the `detachHandler` method was called.
+
+* `success` - `true` if the detach operation succeeded, `false` otherwise.
+* `errorMsg` - a string contaning the error message if success was `false`.
+* `domain` - echo of the subdomain string defined in the detachHandler method `domain` parameter.
+* `scheme` - echo of the scheme string defined in the detachHandler method `scheme` parameter.
+
+Example:
+
+    var detachParams = { 
+      domain : "wsDomain", 
+      scheme : "ws", 
+      token : "wsToken", 
+    };
+
+    res.detachHandler(detachParams, function(detachErr, detachRes) {
+      if (detachErr) {
+        alert("BOINK!");
+      } else {
+        // useful stuff here
+      }
+    } );
+
+Obviously, the order in which the methods should be called is connect -> registerDomain -> attachHandler -> detachHandler -> unregisterDomain -> disconnect.
+
+See the [helloWorld example](https://github.com/izuzak/node-revhttpws/tree/master/examples/hello-world) for a full example.
 
 Running the HelloWorld example
 ------------------------------
