@@ -75,7 +75,7 @@ which gracefully shuts down the server.
 Example:
 
     var revhttpws = require('lib/revhttpws-server.js');
-    
+
     var server = revhttpws.createServer({
       'debug' : true,
       'database' : 'revhttpws-uris.db',
@@ -85,7 +85,7 @@ Example:
     }, function () {
       server.listen(8080, '161.53.65.205');
     });
-    
+
     function closeServer() {
       server.close();
     }
@@ -94,20 +94,20 @@ Example:
 
 The revhttpws-client library exposes an API for connecting to the revhttpws proxy server (using WebSockets) and performing various operations on the server. The revhttpws-client library (revhttpws-client.js) may be used in a browser environment (using the `<script>` tag) or in nodejs applications (using `require`):
 
-    <script type="text/javascript" src="revhttpws-client.js"></script>   
+    <script type="text/javascript" src="revhttpws-client.js"></script>
 for use in a browser application and
-    
+
     var RevHttpWsClient = require('./../lib/revhttpws-client.js').RevHttpWsClient;
 for use in a nodejs application.
 
 The library functionallity is accessed through the RevHttpWsClient object which must be instantiated:
 
     var client = new RevHttpWsClient(options);
-    
-where `options` is a map of the following parameters: 
+
+where `options` is a map of the following parameters:
 
 * (optional) `debug` - switch for turning console debug messages on (`true`) or off (`false`) (default: `false`)
-    
+
 The RevHttpWsClient object exposes the following methods:
 
 ####    client.connect(revhttpwsServerUri, function(err, res) { ... });
@@ -116,15 +116,15 @@ which connects to the revhttpws proxy server. `revhttpwsServerUri` is an URI str
 
 Example:
 
-    client.connect('ws://cp.revhttpws.ivanzuzak.info', function(connectErr, connectRes) { 
+    client.connect('ws://cp.revhttpws.ivanzuzak.info', function(connectErr, connectRes) {
       if (connectErr) {
         alert("BOINK!");
       } else {
         // useful stuff here
       }
     });
- 
- 
+
+
 ####    client.disconnect();
 which disconnects from the revhttpws proxy server.
 
@@ -145,7 +145,7 @@ which registers a subdomain on the revhttpws proxy server in order to serve requ
 Example:
 
     client.registerDomain({ domain : "helloWorldDomain123", token : "helloToken" },
-      function(registerErr, registerRes) { 
+      function(registerErr, registerRes) {
         if (registerErr) {
           alert("BOINK!");
         } else {
@@ -155,7 +155,7 @@ Example:
     });
 
 
-####    client.unregisterDomain(params, function(err, res) { ... }); 
+####    client.unregisterDomain(params, function(err, res) { ... });
 which unregisters a subdomain on the revhttpws proxy server. `params` is a map of the following parameters for unregistering a subdomain:
 
 * (mandatory) `domain` - string defining the subdomain to be unregisterer (e.g. `'helloworld123'`).
@@ -170,7 +170,7 @@ which unregisters a subdomain on the revhttpws proxy server. `params` is a map o
 Example:
 
     client.unregisterDomain({ domain : "helloWorldDomain123", token : "helloToken" },
-      function(unregisterErr, unregisterRes) { 
+      function(unregisterErr, unregisterRes) {
         if (unregisterErr) {
           alert("BOINK!");
         } else {
@@ -179,7 +179,7 @@ Example:
       }
     });
 
-####    client.attachHandler(params, function(err, res) { ... }); 
+####    client.attachHandler(params, function(err, res) { ... });
 which attaches a handler for a specific protocol on a previously registered subdomain. The currently supported protocols are HTTP and WebSockets. In essence, the attach handler operation yields an URI with either the HTTP and WS schemes and enables applications to server requests sent to that URI. A domain may have a single handler attached per protocol/scheme (ie. 1 for HTTP, 1 for WS). `params` is a map of the following parameters for attaching a handler:
 
 * (mandatory) `domain` - a string defining a previously registered subdomain to which a handler should be attached (e.g. 'helloworld123')
@@ -204,42 +204,42 @@ HTTP Example:
         response.send();
       }
     };
-    
-    var handlerParams = { 
-      domain : "helloWorldDomain", 
-      scheme : "http", 
-      token : "helloToken", 
+
+    var handlerParams = {
+      domain : "helloWorldDomain",
+      scheme : "http",
+      token : "helloToken",
       handler : helloHandler
     };
 
-    client.attachHandler( handlerParams, function(attachErr, attachRes) { 
+    client.attachHandler( handlerParams, function(attachErr, attachRes) {
       if (attachErr) {
         alert("BOINK!");
       } else {
         // useful stuff here
       }
     } );
-          
+
 WebSockets Example:
 
     var wsHandler = function(newWebSocket) {
       newWebSocket.onmessage = function(msg) {
-        newWebSocket.send("ECHO " + msg.data);   
+        newWebSocket.send("ECHO " + msg.data);
         setTimeout( function() { newWebSocket.close(); }, 4000 );
       };
-      
+
       newWebSocket.onerror = function() { console.log("WS ERROR"); };
-      newWebSocket.onclose = function() { console.log("WS CLOSE"); };      
+      newWebSocket.onclose = function() { console.log("WS CLOSE"); };
     };
-    
-    var handlerParams = { 
-      domain : "wsDomain", 
-      scheme : "ws", 
-      token : "wsToken", 
+
+    var handlerParams = {
+      domain : "wsDomain",
+      scheme : "ws",
+      token : "wsToken",
       handler : wsHandler
     };
-    
-    client.attachHandler( handlerParams, function(attachErr, attachRes) { 
+
+    client.attachHandler( handlerParams, function(attachErr, attachRes) {
       if (attachErr) {
         alert("BOINK!");
       } else {
@@ -248,7 +248,7 @@ WebSockets Example:
     } );
 
 
-####    client.detachHandler(params, function(err, res) { ... }); 
+####    client.detachHandler(params, function(err, res) { ... });
 - detaches a previously attached handler. `params` is a map of the following parameters for detaching a handler:
 
 * (mandatory) `domain` - a string defining a previously registered subdomain from which a handler should be detached (e.g. 'helloworld123')
@@ -264,10 +264,10 @@ WebSockets Example:
 
 Example:
 
-    var detachParams = { 
-      domain : "wsDomain", 
-      scheme : "ws", 
-      token : "wsToken", 
+    var detachParams = {
+      domain : "wsDomain",
+      scheme : "ws",
+      token : "wsToken",
     };
 
     res.detachHandler(detachParams, function(detachErr, detachRes) {
@@ -322,9 +322,9 @@ Run the server:
 Edit the examples/hello-world/helloWorld.html file in two places and replace localhost with your domain and port:
 
     var serverDomain = "revhttpws.smartdomainname.com";
-    var serverPort = "9090";     
+    var serverPort = "9090";
 
-If you want to use the testing server - set edit the file to read: 
+If you want to use the testing server - set edit the file to read:
 
     var serverDomain = "revhttpws.ivanzuzak.info";
     var serverPort = "9090";
@@ -333,7 +333,7 @@ Save, close, and open the page in a browser. The Web page will connect to the pr
 
 The Web page itself will make an AJAX call to the service and output the result in a DIV. However, if you want to call the service from another browser window - read on.
 
-### Running a client requesting exposed services 
+### Running a client requesting exposed services
 
 Open a new window in a browser and copy/paste the URL from the Web page (it will look something like this):
 
@@ -360,7 +360,7 @@ Don't worry if the test outputs 3 errors at the bottom, it's a result of closing
 Todo
 ----
 
-[Many, many things.](https://github.com/izuzak/node-revhttpws/blob/master/TODO.md)
+[Many, many things.](TODO.md)
 
 License
 -------
